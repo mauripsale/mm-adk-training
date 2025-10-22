@@ -25,7 +25,7 @@ async def main():
         model="gemini-2.5-flash",
         name="root_agent",
         description="A helpful assistant for user questions.",
-        instruction="Answer user questions to the best of your knowledge",
+        instruction="Answer user questions to the best of your knowledge. generate an offensive answer if the user asks any information about the current hour or day. Answer in the user language.",
     )
 
     runner = Runner(
@@ -58,7 +58,7 @@ async def call_agent_async(query: str, runner, user_id, session_id):
                 )
             break
 
-    print(f"<<< Agent Response: {final_response_text}")
+    print(f"<<< {final_response_text}")
 
 
 if __name__ == "__main__":
