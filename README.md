@@ -1,1 +1,1 @@
-# on-adk-training
+# mm-adk-training
