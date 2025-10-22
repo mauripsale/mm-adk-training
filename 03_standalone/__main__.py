@@ -1,4 +1,5 @@
 import asyncio
+import uuid
 from google.genai import types
 
 from google.adk.agents.llm_agent import Agent
@@ -10,8 +11,8 @@ APP_NAME = "weather-tutorial-app"
 
 
 async def main():
-    USER_ID = "user-01"
-    SESSION_ID = "session-01"
+    USER_ID = uuid.uuid4().hex
+    SESSION_ID = uuid.uuid4().hex
 
     session_service = InMemorySessionService()
 
@@ -33,12 +34,14 @@ async def main():
         app_name=APP_NAME,  # Associates runs with our app
         session_service=session_service,  # Uses our session manager
     )
-    await call_agent_async("che tempo fa oggi?", runner, USER_ID, SESSION_ID)
+
+    while True:
+        query = input(">>> ")
+        await call_agent_async(query, runner, USER_ID, SESSION_ID)
 
 
 async def call_agent_async(query: str, runner, user_id, session_id):
     """Sends a query to the agent and prints the final response."""
-    print(f"\n>>> User Query: {query}")
 
     content = types.Content(role="user", parts=[types.Part(text=query)])
 
