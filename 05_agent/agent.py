@@ -1,68 +1,40 @@
-import asyncio
 import os
-from dotenv import load_dotenv
 from google.adk.agents.llm_agent import Agent
-from google.adk.runners import InMemoryRunner
-from google.genai.types import UserContent, Part
-import google.generativeai as genai
+from google.adk.tools import google_search
+from google.adk.tools.mcp_tool.mcp_toolset import McpToolset
+from google.adk.tools.mcp_tool.mcp_session_manager import StdioConnectionParams
+from mcp import StdioServerParameters
 
-# Carica le variabili d'ambiente dal file .env
-load_dotenv()
-
-# Configura l'API key di Google AI, per ADK è superflue, serve per integrazioni dirette
-"""api_key = os.getenv("GOOGLE_API_KEY")
-if not api_key:
-    raise ValueError("GOOGLE_API_KEY non trovata nel file .env")
-genai.configure(api_key=api_key)"""
-
-def get_weather(city: str, unit: str):
-    """
-    Retrieves the weather for a city in the specified unit.
-
-    Args:
-        city (str): The city name.
-        unit (str): The temperature unit, either 'Celsius' or 'Fahrenheit'.
-    """
-    # ... function logic ...
-    return {"status": "success", "report": f"Weather for {city} is sunny."}
+TARGET_FOLDER_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "prove")
 
 
 root_agent = Agent(
-    model='gemini-2.0-flash',
+    model='gemini-2.5-flash',
     name='root_agent',
     description='A helpful assistant for user questions.',
-    instruction='Answer user questions to the best of your knowledge. Use the tool get_weather when you can answer. parla in modo aulico',
-    tools=[get_weather],
+    instruction='Answer user questions to the best of your knowledge. Use the tool get_weather when you can answer. Rispondi in modo aulico ed elegante. rimani però fedele alla strada, tu sei nato povero ma ora sei borghese, non dimenticarlo mai.',
+    tools=[
+        McpToolset(
+            connection_params=StdioConnectionParams(
+                server_params = StdioServerParameters(
+                    command='npx',
+                    args=[
+                        "-y",  # Argument for npx to auto-confirm install
+                        "@modelcontextprotocol/server-filesystem",
+                        # IMPORTANT: This MUST be an ABSOLUTE path to a folder the
+                        # npx process can access.
+                        # Replace with a valid absolute path on your system.
+                        # For example: "/Users/youruser/accessible_mcp_files"
+                        # or use a dynamically constructed absolute path:
+                        os.path.abspath(TARGET_FOLDER_PATH),
+                    ],
+                ),
+            ),
+            # Optional: Filter which tools from the MCP server are exposed
+            # tool_filter=['list_directory', 'read_file']
+        )
+    ],
 )
 
-runner = InMemoryRunner(agent=root_agent)
 
-async def main():
-    # La creazione della sessione è asincrona e va fatta qui
-    session = await runner.session_service.create_session(
-        app_name=runner.app_name,
-        user_id="test_user"
-    )
-    print("Chat iniziata. Scrivi 'bye', 'quit' o 'exit' per terminare.")
 
-    while True:
-        user_input = input("Prompt: ")
-        if user_input.lower() in ["bye", "quit", "exit"]:
-            print("Chat terminata.")
-            break
-
-        content = UserContent(parts=[Part(text=user_input)])
-
-        print("Gemini: ", end="", flush=True)
-        # L'esecuzione del runner è un generatore asincrono
-        async for event in runner.run_async(
-            user_id=session.user_id,
-            session_id=session.id,
-            new_message=content,
-        ):
-            for part in event.content.parts:
-                print(part.text, end="", flush=True)
-        print("\n") # Aggiunge una nuova riga dopo la risposta completa
-
-if __name__ == '__main__':
-    asyncio.run(main())
